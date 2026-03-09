@@ -3,9 +3,12 @@ from pathlib import Path
 
 def _load_recipes_from_csv():
     """Load recipe data from data/recipes.csv. Returns list of recipe dicts or None if file missing."""
-    data_dir = Path(__file__).resolve().parent.parent / "data"
-    csv_path = data_dir / "recipes.csv"
-    if not csv_path.exists():
+    base = Path(__file__).resolve().parent.parent
+    for data_dir in [base / "data", base.parent / "SmartRecipe_Code_Bundle" / "data", Path.cwd() / "data"]:
+        csv_path = data_dir / "recipes.csv"
+        if csv_path.exists():
+            break
+    else:
         return None
     recipes = []
     with open(csv_path, newline="", encoding="utf-8") as f:
@@ -47,7 +50,7 @@ _FALLBACK_RECIPE_DATA = [
         "ingredients": ["potato", "garlic", "oil", "salt", "pepper"],
         "cuisine": "Indian",
         "difficulty": "Easy",
-        "diet": ["Vegetarian", "Vegan", "Jain"],
+        "diet": ["Vegetarian", "Vegan", "Jain", "High Protein"],
         "steps": [
             "Boil or parboil potatoes.",
             "Heat oil in a pan.",

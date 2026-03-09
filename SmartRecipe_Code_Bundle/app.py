@@ -57,9 +57,10 @@ with tab2:
 
         if not recipes:
             st.warning("No recipes match your ingredients and filters.")
-            st.markdown("Try one of these:")
-            st.markdown("- Change **Diet** or **Cuisine** filters in the sidebar (e.g. select *Any* and *Any*)")
-            st.markdown("- Add more ingredients in **Ingredient Entry** (e.g. *oil*, *salt*, *pepper*)")
+            st.markdown("**What to try:**")
+            st.markdown("1. Set **Cuisine** and **Diet** to **Any** in the sidebar to see all matches")
+            st.markdown("2. Add more ingredients in **Ingredient Entry** (e.g. *oil*, *salt*, *potato*, *carrot*, *beans*)")
+            st.caption("Available cuisines: Indian, Asian. Diets: Vegetarian, Vegan, Jain, High Protein.")
         else:
             st.success(f"Found **{len(recipes)}** recipe(s) you can make. Scroll down to see details.")
             st.caption("Each recipe shows: ingredients needed, steps, estimated nutrition, and missing items to buy.")

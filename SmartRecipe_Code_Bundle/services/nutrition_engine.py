@@ -5,6 +5,10 @@ NUTRITION_DB = {
     "potato": {"calories": 77, "protein": 2.0, "carbs": 17.0, "fat": 0.1},
     "carrot": {"calories": 41, "protein": 0.9, "carbs": 10.0, "fat": 0.2},
     "beans": {"calories": 31, "protein": 1.8, "carbs": 7.0, "fat": 0.1},
+    "oil": {"calories": 120, "protein": 0, "carbs": 0, "fat": 14},
+    "salt": {"calories": 0, "protein": 0, "carbs": 0, "fat": 0},
+    "pepper": {"calories": 251, "protein": 10.4, "carbs": 64.8, "fat": 3.3},
+    "soy sauce": {"calories": 53, "protein": 5.6, "carbs": 6.0, "fat": 0.1},
 }
 
 def estimate_nutrition(ingredients, servings=1):
