@@ -3,6 +3,7 @@ from services.ingredient_analyzer import analyze_ingredients
 from services.recipe_engine import recommend_recipes
 from services.nutrition_engine import estimate_nutrition
 from services.shopping_list import generate_shopping_list
+from services.diet_validator import get_conflicting_ingredients, get_diet_guidance
 
 st.set_page_config(page_title="SmartRecipe", layout="wide")
 
@@ -17,6 +18,16 @@ with st.sidebar:
     2. Click **Analyze Ingredients**
     3. **Recipe Dashboard** — See your matches
     """)
+    st.divider()
+    with st.expander("About diet filters", expanded=False):
+        st.markdown("""
+        - **Vegetarian** — Excludes meat, fish, seafood
+        - **Vegan** — Excludes all animal products (meat, fish, eggs, dairy, honey)
+        - **Jain** — Excludes meat, fish, eggs, and root vegetables (onion, garlic, potato, carrot)
+        - **High Protein** — No exclusions
+
+        *If your ingredients don't match your diet, we'll warn you — but we won't block you.*
+        """)
     st.divider()
     st.header("Filters")
     diet = st.selectbox("Diet Type", ["None", "Vegetarian", "Vegan", "Jain", "High Protein"], help="Filter recipes by diet")
@@ -39,7 +50,19 @@ with tab1:
         else:
             ingredients = analyze_ingredients(ingredients_input.split(","))
             st.session_state["ingredients"] = ingredients
-            st.success("Ingredients analyzed successfully. Your list is ready.")
+            st.session_state["diet_at_analyze"] = diet  # Store diet used when analyzing
+
+            conflicting = get_conflicting_ingredients(ingredients, diet) if diet != "None" else []
+            if conflicting:
+                st.warning(f"**Diet mismatch:** You selected **{diet}** (typically {get_diet_guidance(diet)}), but you entered: **{', '.join(conflicting)}**.")
+                st.markdown("**What to do:**")
+                st.markdown("- Remove these ingredients and re-analyze, or")
+                st.markdown("- Change **Diet Type** to **None** in the sidebar to see recipes with these ingredients.")
+                st.info("Your ingredients are saved. Go to **Recipe Dashboard** — you can switch the diet filter in the sidebar anytime.")
+            else:
+                st.success("Ingredients analyzed successfully. Your list is ready.")
+                if diet != "None":
+                    st.caption(f"Diet filter **{diet}** applied — recipes will match this diet.")
             st.markdown("**Ingredients we found:** " + ", ".join(f"`{i}`" for i in ingredients))
             st.info("**Next step:** Go to the **Recipe Dashboard** tab (above) to see recipe recommendations based on these ingredients and your filters.")
 
@@ -53,12 +76,20 @@ with tab2:
         st.divider()
         st.caption("Tip: Enter at least 2 ingredients for best results.")
     else:
+        conflicting = get_conflicting_ingredients(ingredients, diet) if diet != "None" else []
+        if conflicting:
+            st.warning(f"**Diet mismatch:** You selected **{diet}** (typically {get_diet_guidance(diet)}), but your ingredients include: **{', '.join(conflicting)}**.")
+            st.markdown("Recipes below are filtered by diet — you may see fewer or no matches.")
+            st.caption("💡 Set **Diet Type** to **None** in the sidebar to see recipes that use these ingredients.")
+
         recipes = recommend_recipes(ingredients, cuisine=cuisine, diet=diet)
 
         if not recipes:
             st.warning("No recipes match your ingredients and filters.")
+            if conflicting:
+                st.info("**Quick fix:** Set **Diet Type** to **None** in the sidebar to see recipes that use " + ", ".join(f"*{c}*" for c in conflicting) + ".")
             st.markdown("**What to try:**")
-            st.markdown("1. Set **Cuisine** and **Diet** to **Any** in the sidebar to see all matches")
+            st.markdown("1. Set **Cuisine** to **Any** and **Diet** to **None** in the sidebar to see all matches")
             st.markdown("2. Add more ingredients in **Ingredient Entry** (e.g. *oil*, *salt*, *potato*, *carrot*, *beans*)")
             st.caption("Available cuisines: Indian, Asian. Diets: Vegetarian, Vegan, Jain, High Protein.")
         else:
