@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+.venv/
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# IDE / Editor
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Environment / Secrets
+.env
+.env.local
+*.pem
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Streamlit
+.streamlit/secrets.toml
+
+# Project-specific (optional - uncomment if you don't want these in repo)
+# SmartRecipe_Project_Report.docx
+# *.zip
