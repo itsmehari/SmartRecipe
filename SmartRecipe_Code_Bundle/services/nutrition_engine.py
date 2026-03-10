@@ -20,6 +20,8 @@ NUTRITION_DB = {
     "egg": {"calories": 155, "protein": 13.0, "carbs": 1.1, "fat": 11.0},
     "fish": {"calories": 206, "protein": 22.0, "carbs": 0, "fat": 12.0},
     "prawn": {"calories": 119, "protein": 25.2, "carbs": 0.2, "fat": 1.8},
+    "mutton": {"calories": 294, "protein": 25.6, "carbs": 0, "fat": 21.0},
+    "yogurt": {"calories": 59, "protein": 10.0, "carbs": 3.6, "fat": 0.4},
 }
 
 def estimate_nutrition(ingredients, servings=1):

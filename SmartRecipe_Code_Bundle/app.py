@@ -2,7 +2,16 @@ import streamlit as st
 from services.ingredient_analyzer import analyze_ingredients
 from services.recipe_engine import recommend_recipes
 from services.nutrition_engine import estimate_nutrition
-from services.shopping_list import generate_shopping_list, generate_shopping_list_split
+from services.shopping_list import generate_shopping_list
+try:
+    from services.shopping_list import generate_shopping_list_split
+except ImportError:
+    _PANTRY = {"oil", "salt", "pepper", "soy sauce"}
+    def generate_shopping_list_split(avail, rec):
+        missing = generate_shopping_list(avail, rec)
+        pantry = [m for m in missing if m.lower() in _PANTRY]
+        to_buy = [m for m in missing if m.lower() not in _PANTRY]
+        return {"pantry": pantry, "to_buy": to_buy}
 from services.diet_validator import get_conflicting_ingredients, get_diet_guidance
 
 st.set_page_config(page_title="SmartRecipe", layout="wide")

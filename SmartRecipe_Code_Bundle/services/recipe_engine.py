@@ -91,6 +91,18 @@ def build_recipe(ingredients):
 # Ingredients many users already have; recipes can assume these
 PANTRY_STAPLES = {"oil", "salt", "pepper", "soy sauce"}
 
+# Main proteins — NOT interchangeable. If recipe needs chicken and user has mutton, don't show it.
+MAIN_PROTEINS = {"chicken", "fish", "egg", "prawn", "mutton", "beef", "lamb", "pork", "shrimp"}
+
+def _recipe_requires_protein_user_lacks(recipe_ings, user_ings):
+    """True if recipe needs a main protein the user doesn't have (chicken vs mutton confusion)."""
+    recipe_proteins = recipe_ings & MAIN_PROTEINS
+    user_proteins = user_ings & MAIN_PROTEINS
+    if not recipe_proteins:
+        return False  # veg recipe
+    missing_proteins = recipe_proteins - user_ings
+    return bool(missing_proteins)  # recipe needs chicken, user has mutton -> exclude
+
 def recommend_recipes(ingredients, cuisine="Any", diet="None"):
     """
     Returns dict with two tiers:
@@ -114,6 +126,10 @@ def recommend_recipes(ingredients, cuisine="Any", diet="None"):
             continue
 
         recipe_ings = set(recipe["ingredients"])
+        # Don't show chicken recipe when user has mutton (or vice versa)
+        if _recipe_requires_protein_user_lacks(recipe_ings, ingredients):
+            continue
+
         overlap_set = ingredients.intersection(recipe_ings)
         overlap = len(overlap_set)
         missing = recipe_ings - ingredients
