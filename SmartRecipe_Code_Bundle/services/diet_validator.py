@@ -61,6 +61,7 @@ def get_diet_guidance(diet):
     guidance = {
         "Vegetarian": "excludes meat, fish, seafood",
         "Vegan": "excludes all animal products (meat, fish, eggs, dairy, honey)",
+        "Non-Vegetarian": "includes chicken, fish, egg, prawn (excludes pure veg recipes)",
         "Jain": "excludes meat, fish, eggs, and root vegetables (onion, garlic, potato, carrot)",
         "High Protein": "no exclusions",
     }

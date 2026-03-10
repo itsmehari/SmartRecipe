@@ -23,14 +23,15 @@ with st.sidebar:
         st.markdown("""
         - **Vegetarian** — Excludes meat, fish, seafood
         - **Vegan** — Excludes all animal products (meat, fish, eggs, dairy, honey)
+        - **Non-Vegetarian** — Includes chicken, fish, egg, prawn
         - **Jain** — Excludes meat, fish, eggs, and root vegetables (onion, garlic, potato, carrot)
-        - **High Protein** — No exclusions
+        - **High Protein** — No exclusions (veg and non-veg)
 
         *If your ingredients don't match your diet, we'll warn you — but we won't block you.*
         """)
     st.divider()
     st.header("Filters")
-    diet = st.selectbox("Diet Type", ["None", "Vegetarian", "Vegan", "Jain", "High Protein"], help="Filter recipes by diet")
+    diet = st.selectbox("Diet Type", ["None", "Vegetarian", "Non-Vegetarian", "Vegan", "Jain", "High Protein"], help="Filter recipes by diet")
     cuisine = st.selectbox("Cuisine Preference", ["Any", "Indian", "South Indian", "North Indian", "Italian", "Asian"], help="Filter by cuisine style")
     servings = st.number_input("Servings", min_value=1, max_value=10, value=2, help="For nutrition per serving")
 
@@ -48,9 +49,12 @@ with tab1:
         if not ingredients_input or not ingredients_input.strip():
             st.warning("Please enter at least one ingredient.")
         else:
-            ingredients = analyze_ingredients(ingredients_input.split(","))
+            ingredients, corrections = analyze_ingredients(ingredients_input.split(","))
             st.session_state["ingredients"] = ingredients
             st.session_state["diet_at_analyze"] = diet  # Store diet used when analyzing
+
+            if corrections:
+                st.success("**We corrected some ingredients:** " + " | ".join(f"*{orig}* → **{fix}**" for orig, fix in corrections))
 
             conflicting = get_conflicting_ingredients(ingredients, diet) if diet != "None" else []
             if conflicting:
@@ -59,7 +63,7 @@ with tab1:
                 st.markdown("- Remove these ingredients and re-analyze, or")
                 st.markdown("- Change **Diet Type** to **None** in the sidebar to see recipes with these ingredients.")
                 st.info("Your ingredients are saved. Go to **Recipe Dashboard** — you can switch the diet filter in the sidebar anytime.")
-            else:
+            elif not corrections:
                 st.success("Ingredients analyzed successfully. Your list is ready.")
                 if diet != "None":
                     st.caption(f"Diet filter **{diet}** applied — recipes will match this diet.")
@@ -91,7 +95,7 @@ with tab2:
             st.markdown("**What to try:**")
             st.markdown("1. Set **Cuisine** to **Any** and **Diet** to **None** in the sidebar to see all matches")
             st.markdown("2. Add more ingredients in **Ingredient Entry** (e.g. *oil*, *salt*, *potato*, *carrot*, *beans*)")
-            st.caption("Available cuisines: Indian, Asian. Diets: Vegetarian, Vegan, Jain, High Protein.")
+            st.caption("Available cuisines: Indian, Asian, Italian. Diets: Vegetarian, Non-Vegetarian, Vegan, Jain, High Protein.")
         else:
             st.success(f"Found **{len(recipes)}** recipe(s) you can make. Scroll down to see details.")
             st.caption("Each recipe shows: ingredients needed, steps, estimated nutrition, and missing items to buy.")
