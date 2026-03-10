@@ -88,21 +88,58 @@ def build_recipe(ingredients):
         return "Garlic Potato Fry"
     return "Mixed Vegetable Dish"
 
+# Ingredients many users already have; recipes can assume these
+PANTRY_STAPLES = {"oil", "salt", "pepper", "soy sauce"}
+
 def recommend_recipes(ingredients, cuisine="Any", diet="None"):
+    """
+    Returns dict with two tiers:
+    - you_can_make: recipes where user has 50%+ of ingredients (strict, practical)
+    - close_add_few: recipes with 2+ overlap but below 50% (exploratory)
+    Each recipe includes overlap, missing_count, missing_ingredients for display.
+    """
     ingredients = set(ingredients)
     RECIPE_DATA = _get_recipe_data()
-    # Map UI cuisine options to CSV values: South Indian / North Indian -> Indian
     cuisine_filter = cuisine
     if cuisine in ("South Indian", "North Indian"):
         cuisine_filter = "Indian"
-    matches = []
+
+    you_can_make = []
+    close_add_few = []
+
     for recipe in RECIPE_DATA:
-        overlap = len(ingredients.intersection(set(recipe["ingredients"])))
-        if overlap >= 2:
-            if cuisine_filter != "Any" and recipe["cuisine"] != cuisine_filter:
-                continue
-            if diet != "None" and diet not in recipe["diet"]:
-                continue
-            matches.append((overlap, recipe))
-    matches.sort(key=lambda x: x[0], reverse=True)
-    return [m[1] for m in matches]
+        if cuisine_filter != "Any" and recipe["cuisine"] != cuisine_filter:
+            continue
+        if diet != "None" and diet not in recipe["diet"]:
+            continue
+
+        recipe_ings = set(recipe["ingredients"])
+        overlap_set = ingredients.intersection(recipe_ings)
+        overlap = len(overlap_set)
+        missing = recipe_ings - ingredients
+        missing_count = len(missing)
+
+        if overlap < 2:
+            continue
+
+        total = len(recipe_ings)
+        overlap_ratio = overlap / total if total else 0
+
+        recipe_with_meta = dict(recipe)
+        recipe_with_meta["overlap"] = overlap
+        recipe_with_meta["missing_count"] = missing_count
+        recipe_with_meta["missing_ingredients"] = sorted(missing)
+
+        # Tier 1: user has 50%+ of recipe ingredients
+        if overlap_ratio >= 0.5:
+            you_can_make.append((overlap, -missing_count, recipe_with_meta))
+        else:
+            close_add_few.append((overlap, -missing_count, recipe_with_meta))
+
+    you_can_make.sort(key=lambda x: (x[0], x[1]), reverse=True)
+    close_add_few.sort(key=lambda x: (x[0], x[1]), reverse=True)
+
+    return {
+        "you_can_make": [m[2] for m in you_can_make],
+        "close_add_few": [m[2] for m in close_add_few],
+    }

@@ -2,7 +2,7 @@ import streamlit as st
 from services.ingredient_analyzer import analyze_ingredients
 from services.recipe_engine import recommend_recipes
 from services.nutrition_engine import estimate_nutrition
-from services.shopping_list import generate_shopping_list
+from services.shopping_list import generate_shopping_list, generate_shopping_list_split
 from services.diet_validator import get_conflicting_ingredients, get_diet_guidance
 
 st.set_page_config(page_title="SmartRecipe", layout="wide")
@@ -86,9 +86,12 @@ with tab2:
             st.markdown("Recipes below are filtered by diet — you may see fewer or no matches.")
             st.caption("💡 Set **Diet Type** to **None** in the sidebar to see recipes that use these ingredients.")
 
-        recipes = recommend_recipes(ingredients, cuisine=cuisine, diet=diet)
+        result = recommend_recipes(ingredients, cuisine=cuisine, diet=diet)
+        you_can_make = result["you_can_make"]
+        close_add_few = result["close_add_few"]
+        total = len(you_can_make) + len(close_add_few)
 
-        if not recipes:
+        if total == 0:
             st.warning("No recipes match your ingredients and filters.")
             if conflicting:
                 st.info("**Quick fix:** Set **Diet Type** to **None** in the sidebar to see recipes that use " + ", ".join(f"*{c}*" for c in conflicting) + ".")
@@ -97,18 +100,20 @@ with tab2:
             st.markdown("2. Add more ingredients in **Ingredient Entry** (e.g. *oil*, *salt*, *potato*, *carrot*, *beans*)")
             st.caption("Available cuisines: Indian, Asian, Italian. Diets: Vegetarian, Non-Vegetarian, Vegan, Jain, High Protein.")
         else:
-            st.success(f"Found **{len(recipes)}** recipe(s) you can make. Scroll down to see details.")
-            st.caption("Each recipe shows: ingredients needed, steps, estimated nutrition, and missing items to buy.")
+            st.success(f"Found **{total}** recipe(s). Recipes you can make with your ingredients are listed first.")
+            st.caption("**You can make** = you have 50%+ of ingredients. **Close** = add a few items to try.")
 
-            for idx, recipe in enumerate(recipes):
+            def render_recipe(recipe, badge=""):
                 st.markdown("---")
-                st.markdown(f"### {recipe['name']}")
+                st.markdown(f"### {recipe['name']}" + (f" {badge}" if badge else ""))
 
-                col1, col2 = st.columns(2)
+                col1, col2, col3 = st.columns([1, 1, 1])
                 with col1:
                     st.markdown("**Cuisine:** " + recipe["cuisine"])
                 with col2:
                     st.markdown("**Difficulty:** " + recipe["difficulty"])
+                with col3:
+                    st.markdown(f"**You have:** {recipe.get('overlap', 0)} of {len(recipe['ingredients'])} ingredients")
 
                 with st.expander("What you need", expanded=True):
                     st.markdown(", ".join(recipe["ingredients"]))
@@ -125,8 +130,22 @@ with tab2:
                 n3.metric("Carbs", f"{nutrition['carbs']} g")
                 n4.metric("Fat", f"{nutrition['fat']} g")
 
-                shopping = generate_shopping_list(ingredients, recipe["ingredients"])
-                if shopping:
-                    st.warning("**Items to buy:** " + ", ".join(shopping))
-                else:
+                split = generate_shopping_list_split(ingredients, recipe["ingredients"])
+                pantry, to_buy = split["pantry"], split["to_buy"]
+                if to_buy:
+                    st.warning("**To buy:** " + ", ".join(to_buy))
+                if pantry:
+                    st.caption("**Pantry (you may have):** " + ", ".join(pantry))
+                if not to_buy and not pantry:
                     st.success("You have all the ingredients needed for this recipe.")
+
+            if you_can_make:
+                st.markdown("#### ✓ You can make")
+                for recipe in you_can_make:
+                    render_recipe(recipe)
+
+            if close_add_few:
+                st.markdown("#### ○ Close — add a few ingredients")
+                for recipe in close_add_few:
+                    missing = recipe.get("missing_ingredients", [])
+                    render_recipe(recipe, badge=f"_(+{len(missing)} to buy)_")
