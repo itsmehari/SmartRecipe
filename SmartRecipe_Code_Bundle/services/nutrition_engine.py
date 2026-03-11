@@ -1,3 +1,10 @@
+"""
+Nutrition Engine — Estimates Calories, Protein, Carbs, Fat
+=========================================================
+Looks up each ingredient in a table and adds up the values.
+Divides by servings for "per serving" amounts. Rough estimates only.
+"""
+# Table: calories, protein, carbs, fat per 100g (approx.)
 NUTRITION_DB = {
     "tomato": {"calories": 18, "protein": 0.9, "carbs": 3.9, "fat": 0.2},
     "onion": {"calories": 40, "protein": 1.1, "carbs": 9.3, "fat": 0.1},
@@ -24,6 +31,7 @@ NUTRITION_DB = {
     "yogurt": {"calories": 59, "protein": 10.0, "carbs": 3.6, "fat": 0.4},
 }
 
+# Add up nutrition for all ingredients, then divide by number of servings
 def estimate_nutrition(ingredients, servings=1):
     total = {"calories": 0.0, "protein": 0.0, "carbs": 0.0, "fat": 0.0}
     for item in ingredients:

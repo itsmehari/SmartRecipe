@@ -1,12 +1,15 @@
 """
-Ingredient analysis with typo correction and fuzzy matching.
-Returns corrected ingredients and a list of (original, corrected) pairs for display.
+Ingredient Analyzer — Fixes Typos and Cleans Up What the User Types
+==================================================================
+When users type "tamato" or "chiken", this corrects it to "tomato" and "chicken".
+Uses a list of common misspellings plus fuzzy matching for similar-looking words.
+Returns a clean list and which ones were corrected (so we can tell the user).
 """
 import csv
 from difflib import get_close_matches, SequenceMatcher
 from pathlib import Path
 
-# Common typos and variants -> canonical form (extensive list)
+# Dictionary of common typos: left = what user might type, right = correct word
 TYPO_MAP = {
     # Tomato
     "tamato": "tomato", "tomatoes": "tomato", "tomatos": "tomato",
@@ -62,11 +65,11 @@ TYPO_MAP = {
     "yoghurt": "yogurt", "curd": "yogurt",
 }
 
-# Plural/variant suffixes that can be stripped to find base form
+# Endings we remove to get base word (e.g. tomatoes -> tomato)
 PLURAL_SUFFIXES = ("es", "s")
 
+# Load valid ingredient names from ingredients.csv
 def _load_known_ingredients():
-    """Load known ingredient names from data/ingredients.csv."""
     base = Path(__file__).resolve().parent.parent
     for data_dir in [base / "data", base.parent / "SmartRecipe_Code_Bundle" / "data", Path.cwd() / "data"]:
         csv_path = data_dir / "ingredients.csv"
@@ -83,8 +86,8 @@ def _load_known_ingredients():
                 names.add(name)
     return names
 
+# Get every ingredient that appears in any recipe (for fuzzy matching)
 def _load_recipe_ingredients():
-    """Get all unique ingredients from recipes for fuzzy matching."""
     from .recipe_engine import _get_recipe_data
     ingredients = set()
     for recipe in _get_recipe_data():
@@ -92,21 +95,21 @@ def _load_recipe_ingredients():
             ingredients.add(ing.strip().lower())
     return ingredients
 
+# Combine CSV ingredients + recipe ingredients + correct spellings
 def _get_reference_ingredients():
-    """Combine known + recipe ingredients as reference for fuzzy matching."""
     ref = _load_known_ingredients() | _load_recipe_ingredients()
     # Add common canonical forms
     ref.update(TYPO_MAP.values())
     return list(ref)
 
+# Find the closest matching word (e.g. "potatto" -> "potato")
 def _fuzzy_match(item, reference, cutoff=0.75, n=3):
-    """Find best fuzzy match. Returns (matched_word, ratio) or (None, 0)."""
     matches = get_close_matches(item, reference, n=n, cutoff=cutoff)
     if not matches:
         return None, 0
     best = matches[0]
     ratio = SequenceMatcher(None, item, best).ratio()
-    # Prefer shorter/cleaner match for very short inputs (avoid "salt" matching "soy sauce")
+    # For short words like "salt", prefer "salt" not "soy sauce"
     if len(item) <= 4 and len(best) > len(item) + 3:
         if len(matches) > 1:
             for m in matches:
@@ -116,22 +119,20 @@ def _fuzzy_match(item, reference, cutoff=0.75, n=3):
                         return m, r
     return best, ratio
 
+# Main function: clean and correct the user's ingredient list
+# Returns: (corrected list, list of (original, corrected) pairs)
 def analyze_ingredients(ingredients):
-    """
-    Analyze and correct ingredient list. Handles typos, plurals, fuzzy matching.
-    Returns: (corrected_list, [(original, corrected), ...])
-    """
     reference = _get_reference_ingredients()
     result = []
     corrections = []
-    seen = set()  # Avoid duplicates in output
+    seen = set()  # So we don't add the same ingredient twice
 
     for raw in ingredients:
         item = raw.strip().lower()
         if not item:
             continue
 
-        # 1. Check typo map first
+        # 1. Is it in our typo dictionary? (e.g. tamato -> tomato)
         if item in TYPO_MAP:
             canonical = TYPO_MAP[item]
             if item != canonical:
@@ -141,14 +142,14 @@ def analyze_ingredients(ingredients):
                 seen.add(canonical)
             continue
 
-        # 2. Exact match in reference
+        # 2. Is it already a valid ingredient?
         if item in reference:
             if item not in seen:
                 result.append(item)
                 seen.add(item)
             continue
 
-        # 3. Try stripping plural
+        # 3. Try removing plural (tomatoes -> tomato)
         base = item
         for suf in PLURAL_SUFFIXES:
             if len(item) > len(suf) + 1 and item.endswith(suf):
@@ -163,7 +164,7 @@ def analyze_ingredients(ingredients):
         if base is None:
             continue
 
-        # 4. Fuzzy match (typo detection)
+        # 4. Fuzzy match: find closest valid word (e.g. potatto -> potato)
         match, ratio = _fuzzy_match(item, reference, cutoff=0.72)
         if match and ratio >= 0.72:
             corrections.append((raw.strip(), match))
@@ -172,7 +173,7 @@ def analyze_ingredients(ingredients):
                 seen.add(match)
             continue
 
-        # 5. Keep as-is (unknown ingredient - still useful for matching)
+        # 5. Unknown ingredient: keep as-is (still useful for matching)
         if item not in seen:
             result.append(item)
             seen.add(item)
